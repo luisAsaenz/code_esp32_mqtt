@@ -16,10 +16,11 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Change the following configs to suit your environment
-TOPIC           = 'test/mqtt_async'
+TOPIC           = 'EGR314/Team321/ABC'
 config.server   = 'egr314.ddns.net' # can also be a hostname
-config.ssid     = 'senor_fiddle_biscuits'
-config.wifi_pw  = '6503531241'
+
+config.ssid     = 'photon'
+config.wifi_pw  = 'particle'
 
 # swriter = asyncio.StreamWriter(uart, {})
 
