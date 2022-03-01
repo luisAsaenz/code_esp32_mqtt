@@ -7,6 +7,7 @@ import time
 uart = UART(2, 9600,tx=17,rx=16)
 # run the init method with more details including baudrate and parity
 uart.init(9600, bits=8, parity=None, stop=1) 
+led = Pin(2,Pin.OUT)
 
 # run forever
 while True:
@@ -19,6 +20,6 @@ while True:
         # print the byte to the shell
         print(c)
         # toggle the onboard LED
-        Pin(2,Pin.OUT).value(Pin(2,Pin.OUT).value()^1)
+        led.value(led.value()^1)
 	# sleep for a very small amount of time
         time.sleep(.01)
