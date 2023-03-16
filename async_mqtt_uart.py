@@ -15,7 +15,7 @@ MAXTX = 4
 # Change the following configs to suit your environment
 TOPIC_PUB = 'EGR314/Team321/ABC'
 TOPIC_SUB = 'EGR314/Team321/ABC'
-config.server = 'egr314.ddns.net' # can also be a hostname
+config.server = 'egr3x4.ddns.net' # can also be a hostname
 config.ssid     = 'photon'
 config.wifi_pw  = 'particle'
 
