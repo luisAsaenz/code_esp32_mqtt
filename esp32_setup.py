@@ -12,8 +12,8 @@ gc.collect()
 import upip
 
 # set wifi information
-ssid = 'photon'
-password = 'particle' 
+ssid = 'senor_fiddle_biscuits'
+password = '6503531242' 
 
 #create station instance
 station = network.WLAN(network.STA_IF)
@@ -52,6 +52,8 @@ else:
     # so download both libraries
     upip.install('micropython-logging')
     upip.install('micropython-mqtt')
+    upip.install('micropython-ssd1306')
+
 
 # once the logging library has been loaded, import it
 import logging
