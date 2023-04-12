@@ -12,8 +12,8 @@ gc.collect()
 import upip
 
 # set wifi information
-ssid = 'senor_fiddle_biscuits'
-password = '6503531242' 
+ssid = 'particle'
+password = 'photon' 
 
 #create station instance
 station = network.WLAN(network.STA_IF)
