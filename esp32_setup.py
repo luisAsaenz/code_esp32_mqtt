@@ -47,6 +47,11 @@ if 'lib' in os.listdir('./'):
     if 'mqtt_async.py' not in os.listdir('lib/'):
     	# install the micropython mqtt library
         upip.install('micropython-mqtt')
+        
+    # if ssd1306.py is not in the lib directory,
+    if 'ssd1306.py' not in os.listdir('lib/'):
+        upip.install('micropython-ssd1306')
+
 # if there is no 'lib directory', nothing has been downloaded
 else:
     # so download both libraries
