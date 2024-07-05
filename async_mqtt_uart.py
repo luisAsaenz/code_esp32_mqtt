@@ -3,7 +3,8 @@
 # * https://github.com/tve/mqboard/blob/master/mqtt_async/hello-world.py
 
 
-from mqtt_async import MQTTClient, config
+# from mqtt_async import MQTTClient, config
+from mqtt_as import 
 import uasyncio as asyncio
 import time
 from machine import UART

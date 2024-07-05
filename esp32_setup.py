@@ -12,8 +12,8 @@ gc.collect()
 import upip
 
 # set wifi information
-ssid = 'photon'
-password = 'particle' 
+ssid = 'senorita-fussy-bubbles'
+password = 'ic5D4CHJV0X3' 
 
 #create station instance
 station = network.WLAN(network.STA_IF)
@@ -48,17 +48,11 @@ if 'lib' in os.listdir('./'):
     	# install the micropython mqtt library
         upip.install('micropython-mqtt')
         
-    # if ssd1306.py is not in the lib directory,
-    if 'ssd1306.py' not in os.listdir('lib/'):
-        upip.install('micropython-ssd1306')
-
 # if there is no 'lib directory', nothing has been downloaded
 else:
     # so download both libraries
     upip.install('micropython-logging')
     upip.install('micropython-mqtt')
-    upip.install('micropython-ssd1306')
-
 
 # once the logging library has been loaded, import it
 import logging
