@@ -1,24 +1,18 @@
 # Derived from: 
 # * https://github.com/peterhinch/micropython-async/blob/master/v3/as_demos/auart.py
 # * https://github.com/tve/mqboard/blob/master/mqtt_async/hello-world.py
+# * https://github.com/peterhinch/micropython-mqtt
 
 
-# from mqtt_async import MQTTClient, config
-from mqtt_as import 
+from mqtt_as.mqtt_as import MQTTClient
+from mqtt_as.mqtt_local import wifi_led, blue_led, config
 import uasyncio as asyncio
-import time
 from machine import UART
+import time
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 MAXTX = 4
-
-# Change the following configs to suit your environment
-TOPIC_PUB = 'EGR314/Team321/ABC'
-TOPIC_SUB = 'EGR314/Team321/ABC'
-config.server = 'egr3x4.ddns.net' # can also be a hostname
-config.ssid     = 'photon'
-config.wifi_pw  = 'particle'
 
 uart = UART(2, 9600,tx=17,rx=16)
 uart.init(9600, bits=8, parity=None, stop=1,flow=0) # init with given parameters
@@ -30,22 +24,109 @@ async def receiver():
         res = await sreader.read(1)
         if res==b'\r':
             await client.publish(TOPIC_PUB, b, qos=1)
+
             print('published', b)
             b = b''
         else:
             b+=res
 
-def callback(topic, msg, retained, qos):
-    print('callback',topic, msg, retained, qos)
-    while (not not msg):
-        
-        uart.write(msg[:MAXTX])
-        time.sleep(.01)
-        msg = msg[MAXTX:]
+# Subscription callback
+def callback(topic, msg, retained):
 
+    print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
+
+    uart.write(msg)
     uart.write('\r\n')
     time.sleep(.01)
+
+
+# def callback(topic, msg, retained, qos):
+#     print('callback',topic, msg, retained, qos)
+#     while (not not msg):
+        
+#         uart.write(msg[:MAXTX])
+#         time.sleep(.01)
+#         msg = msg[MAXTX:]
+
+#     uart.write('\r\n')
+#     time.sleep(.01)
   
+
+# Demonstrate scheduler is operational.
+async def heartbeat():
+    s = True
+    while True:
+        await asyncio.sleep_ms(500)
+        blue_led(s)
+        s = not s
+
+async def wifi_han(state):
+    wifi_led(not state)
+    print('Wifi is ', 'up' if state else 'down')
+    await asyncio.sleep(1)
+
+# If you connect with clean_session True, must re-subscribe (MQTT spec 3.1.2.4)
+async def conn_han(client):
+    await client.subscribe(TOPIC_SUB, 1)
+
+async def main(client):
+    try:
+        await client.connect()
+    except OSError:
+        print('Connection failed.')
+        return
+    n = 0
+    while True:
+        await asyncio.sleep(5)
+        print('publish', n)
+        # If WiFi is down the following will pause for the duration.
+        await client.publish(TOPIC_PUB, '{} {}'.format(n, client.REPUB_COUNT), qos = 1)
+        n += 1
+
+# Define configuration
+TOPIC_PUB = 'EGR314/Team321/ABC'
+TOPIC_SUB = 'EGR314/Team321/ABC'
+
+# config['server'] = 'egr3x4.ddns.net' # can also be a hostname
+# config['ssid']     = 'photon'
+# config['wifi_pw']  = 'particle'
+
+config['server'] = '192.168.0.192'  # Change to suit
+config['ssid'] = 'senorita-fussy-bubbles'
+config['wifi_pw'] = 'ic5D4CHJV0X3'
+
+config['subs_cb'] = callback
+config['wifi_coro'] = wifi_han
+config['connect_coro'] = conn_han
+config['clean'] = True
+
+# Set up client
+MQTTClient.DEBUG = True  # Optional
+client = MQTTClient(config)
+
+asyncio.create_task(heartbeat())
+try:
+    asyncio.run(main(client))
+finally:
+    client.close()  # Prevent LmacRxBlk:1 errors
+    asyncio.new_event_loop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Change the following configs to suit your environment
+
+
+
 async def conn_callback(client): await client.subscribe(TOPIC_SUB, 1)
 
 async def main(client):
