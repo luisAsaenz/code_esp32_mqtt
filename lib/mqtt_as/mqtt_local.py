@@ -2,13 +2,6 @@
 from sys import platform, implementation
 from mqtt_as.mqtt_as import config
 
-config['server'] = '192.168.0.192'  # Change to suit
-#  config['server'] = 'test.mosquitto.org'
-
-# Not needed if you're only using ESP8266
-config['ssid'] = 'your-ssid-here'
-config['wifi_pw'] = 'put-your-password-here'
-
 # For demos ensure same calling convention for LED's on all platforms.
 # ESP8266 Feather Huzzah reference board has active low LED's on pins 0 and 2.
 # ESP32 is assumed to have user supplied active low LED's on same pins.

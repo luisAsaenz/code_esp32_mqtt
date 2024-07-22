@@ -2,6 +2,7 @@
 # * https://github.com/peterhinch/micropython-async/blob/master/v3/as_demos/auart.py
 # * https://github.com/tve/mqboard/blob/master/mqtt_async/hello-world.py
 # * https://github.com/peterhinch/micropython-mqtt
+# * https://github.com/embedded-systems-design/external_pycopy-lib
 
 
 from mqtt_as.mqtt_as import MQTTClient
@@ -31,7 +32,7 @@ async def receiver():
             b+=res
 
 # Subscription callback
-def callback(topic, msg, retained):
+def sub_cb(topic, msg, retained):
 
     print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
 
@@ -40,7 +41,7 @@ def callback(topic, msg, retained):
     time.sleep(.01)
 
 
-# def callback(topic, msg, retained, qos):
+# def callback_old(topic, msg, retained, qos):
 #     print('callback',topic, msg, retained, qos)
 #     while (not not msg):
         
@@ -91,11 +92,11 @@ TOPIC_SUB = 'EGR314/Team321/ABC'
 # config['ssid']     = 'photon'
 # config['wifi_pw']  = 'particle'
 
-config['server'] = '192.168.0.192'  # Change to suit
-config['ssid'] = 'senorita-fussy-bubbles'
-config['wifi_pw'] = 'ic5D4CHJV0X3'
+config['server'] = 'egr3x4.ddns.net'  # Change to suit
+config['ssid'] = 'home_office'
+config['wifi_pw'] = '4083947241'
 
-config['subs_cb'] = callback
+config['subs_cb'] = sub_cb
 config['wifi_coro'] = wifi_han
 config['connect_coro'] = conn_han
 config['clean'] = True
@@ -127,7 +128,6 @@ finally:
 
 
 
-async def conn_callback(client): await client.subscribe(TOPIC_SUB, 1)
 
 async def main(client):
     await client.connect()
@@ -135,8 +135,8 @@ async def main(client):
     while True:
         await asyncio.sleep(1)
 
-config.subs_cb = callback
-config.connect_coro = conn_callback
+# config.subs_cb = callback
+# config.connect_coro = conn_callback
 
 client = MQTTClient(config)
 loop = asyncio.get_event_loop()

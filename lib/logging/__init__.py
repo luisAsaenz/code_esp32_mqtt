@@ -159,10 +159,7 @@ class StreamHandler(Handler):
         self.flush()
 
     def flush(self):
-        try:
-            self._stream.flush()
-        except AttributeError:
-            print(self._stream)
+        self._stream.flush()
 
 
 class FileHandler(StreamHandler):
