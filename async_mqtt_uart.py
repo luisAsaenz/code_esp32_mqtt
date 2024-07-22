@@ -41,7 +41,7 @@ def sub_cb(topic, msg, retained):
     time.sleep(.01)
 
 
-# def callback_old(topic, msg, retained, qos):
+# def sub_cb_old(topic, msg, retained, qos):
 #     print('callback',topic, msg, retained, qos)
 #     while (not not msg):
         
@@ -88,13 +88,10 @@ async def main(client):
 TOPIC_PUB = 'EGR314/Team321/ABC'
 TOPIC_SUB = 'EGR314/Team321/ABC'
 
-# config['server'] = 'egr3x4.ddns.net' # can also be a hostname
-# config['ssid']     = 'photon'
-# config['wifi_pw']  = 'particle'
+config['server'] = 'egr3x4.ddns.net' # can also be a hostname
+config['ssid']     = 'photon'
+config['wifi_pw']  = 'put password here'
 
-config['server'] = 'egr3x4.ddns.net'  # Change to suit
-config['ssid'] = 'home_office'
-config['wifi_pw'] = '4083947241'
 
 config['subs_cb'] = sub_cb
 config['wifi_coro'] = wifi_han
