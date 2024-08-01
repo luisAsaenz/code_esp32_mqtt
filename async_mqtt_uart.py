@@ -88,15 +88,30 @@ async def main(client):
 TOPIC_PUB = 'EGR314/Team321/ABC'
 TOPIC_SUB = 'EGR314/Team321/ABC'
 
-config['server'] = 'egr3x4.ddns.net' # can also be a hostname
+config['server'] = 'localhost' # can also be a hostname
 config['ssid']     = 'photon'
 config['wifi_pw']  = 'put password here'
+config['ssl']  = True
+config['ssl_params']  = {}
+config['ssl_params']['server_hostname'] = 'localhost'
+config['ssl_params']['key'] = \
+'''-----BEGIN PRIVATE KEY-----
+...
+-----END PRIVATE KEY-----
+''' 
+config['ssl_params']['cert'] = \
+'''-----BEGIN CERTIFICATE-----
+...
+----END CERTIFICATE-----
+'''
+# config['ssl_params']['cafile'] = 'ca-root.crt'
 
 
 config['subs_cb'] = sub_cb
 config['wifi_coro'] = wifi_han
 config['connect_coro'] = conn_han
 config['clean'] = True
+config['client_id']='asdf'
 
 # Set up client
 MQTTClient.DEBUG = True  # Optional
