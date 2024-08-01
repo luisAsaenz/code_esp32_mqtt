@@ -5,39 +5,39 @@
 # * https://github.com/embedded-systems-design/external_pycopy-lib
 
 
-from mqtt_as.mqtt_as import MQTTClient
-from mqtt_as.mqtt_local import wifi_led, blue_led, config
+from lib.mqtt_as.mqtt_as import MQTTClient
+from lib.mqtt_as.mqtt_local import wifi_led, blue_led, config
 import uasyncio as asyncio
-from machine import UART
+# from machine import UART
 import time
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 MAXTX = 4
 
-uart = UART(2, 9600,tx=17,rx=16)
-uart.init(9600, bits=8, parity=None, stop=1,flow=0) # init with given parameters
+# uart = UART(2, 9600,tx=17,rx=16)
+# uart.init(9600, bits=8, parity=None, stop=1,flow=0) # init with given parameters
 
 async def receiver():
-    b = b''
-    sreader = asyncio.StreamReader(uart)
-    while True:
-        res = await sreader.read(1)
-        if res==b'\r':
-            await client.publish(TOPIC_PUB, b, qos=1)
+#     b = b''
+#     sreader = asyncio.StreamReader(uart)
+#     while True:
+#         res = await sreader.read(1)
+#         if res==b'\r':
+    await client.publish(TOPIC_PUB, 'asdf'.encode(), qos=1)
 
-            print('published', b)
-            b = b''
-        else:
-            b+=res
+#             print('published', b)
+#             b = b''
+#         else:
+#             b+=res
 
 # Subscription callback
 def sub_cb(topic, msg, retained):
 
     print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
 
-    uart.write(msg)
-    uart.write('\r\n')
+    # uart.write(msg)
+    # uart.write('\r\n')
     time.sleep(.01)
 
 

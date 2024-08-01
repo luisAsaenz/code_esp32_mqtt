@@ -1,6 +1,6 @@
 # mqtt_local.py Local configuration for mqtt_as demo programs.
 from sys import platform, implementation
-from mqtt_as.mqtt_as import config
+from lib.mqtt_as.mqtt_as import config
 
 # For demos ensure same calling convention for LED's on all platforms.
 # ESP8266 Feather Huzzah reference board has active low LED's on pins 0 and 2.
