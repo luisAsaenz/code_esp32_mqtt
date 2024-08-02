@@ -5,6 +5,8 @@
 # * https://github.com/embedded-systems-design/external_pycopy-lib
 
 
+import ssl
+
 from mqtt_as.mqtt_as import MQTTClient
 from mqtt_as.mqtt_local import wifi_led, blue_led, config
 import uasyncio as asyncio
@@ -92,6 +94,19 @@ config['server'] = 'egr3x4.ddns.net' # can also be a hostname
 config['ssid']     = 'photon'
 config['wifi_pw']  = 'put password here'
 
+config['ssl']  = True
+config['ssl_params']  = {}
+config['ssl_params']['server_hostname'] = '192.168.0.219'
+# config['ssl_params']['do_handshake'] = False
+# config['ssl_params']['cert_reqs'] = ssl.CERT_NONE
+
+# with open('mosquitto.key','rb') as f:
+#     s=f.read()
+# config['ssl_params']['key'] = s
+
+with open('ca-root.crt','r') as f:
+    s=f.read()
+config['ssl_params']['cert'] = s
 
 config['subs_cb'] = sub_cb
 config['wifi_coro'] = wifi_han
