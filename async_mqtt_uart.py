@@ -92,15 +92,15 @@ TOPIC_SUB = 'EGR314/Team321/ABC'
 
 
 
-mqtt_server = '192.168.0.219'
+mqtt_server = '<fill in>'
 port=8883
 user='student'
 client_id = 'client1'
 
 
 config['server'] = mqtt_server # can also be a hostname
-config['ssid']     = 'senorita-fussy-bubbles'
-config['wifi_pw']  = 'ic5D4CHJV0X3'
+config['ssid']     = '<fill in>'
+config['wifi_pw']  = '<fill in>'
 
 config['ssl']  = True
 
