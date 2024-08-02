@@ -1,3 +1,3 @@
-ca-root.crt
-mosquitto.crt
-mosquitto.key
+certs/clients/student/ca_crt.pem
+certs/clients/student/student_crt.pem
+certs/clients/student/student_key.pem

@@ -90,28 +90,50 @@ async def main(client):
 TOPIC_PUB = 'EGR314/Team321/ABC'
 TOPIC_SUB = 'EGR314/Team321/ABC'
 
-config['server'] = 'egr3x4.ddns.net' # can also be a hostname
-config['ssid']     = 'photon'
-config['wifi_pw']  = 'put password here'
+
+
+mqtt_server = '192.168.0.219'
+port=8883
+user='student'
+client_id = 'client1'
+
+
+config['server'] = mqtt_server # can also be a hostname
+config['ssid']     = 'senorita-fussy-bubbles'
+config['wifi_pw']  = 'ic5D4CHJV0X3'
 
 config['ssl']  = True
-config['ssl_params']  = {}
-config['ssl_params']['server_hostname'] = '192.168.0.219'
+
+# topic_sub = b'test/topic01'
+
+# config['ssl_params']['server_hostname'] = '192.168.0.219'
 # config['ssl_params']['do_handshake'] = False
 # config['ssl_params']['cert_reqs'] = ssl.CERT_NONE
 
-# with open('mosquitto.key','rb') as f:
-#     s=f.read()
-# config['ssl_params']['key'] = s
+# read in DER formatted certs & user key
+with open('certs/clients/student/student_key.pem', 'rb') as f:
+    key_data = f.read()
+with open('certs/clients/student/student_crt.pem', 'rb') as f:
+    cert_data = f.read()
+with open('certs/clients/student/ca_crt.pem', 'rb') as f:
+    ca_data = f.read()
+ssl_params = {}
+ssl_params["cert"] = cert_data
+ssl_params["key"] = key_data
+ssl_params["cadata"] = ca_data
+ssl_params["server_hostname"] = mqtt_server
+ssl_params["cert_reqs"] = ssl.CERT_REQUIRED
+config["time_server"] = mqtt_server
+config["time_server_timeout"] = 5
 
-with open('ca-root.crt','r') as f:
-    s=f.read()
-config['ssl_params']['cert'] = s
+config['ssl_params']  = ssl_params
 
 config['subs_cb'] = sub_cb
 config['wifi_coro'] = wifi_han
 config['connect_coro'] = conn_han
 config['clean'] = True
+config['user'] = 'student'
+config["password"] = 'egr3x4'
 
 # Set up client
 MQTTClient.DEBUG = True  # Optional

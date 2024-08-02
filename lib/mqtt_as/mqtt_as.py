@@ -101,6 +101,8 @@ config = {
     "wifi_pw": None,
     "queue_len": 0,
     "gateway": False,
+    "time_server": None,
+    "time_server_timeout": 1,
 }
 
 
@@ -148,6 +150,8 @@ class MQTT_base:
         self._ssid = config["ssid"]  # Required for ESP32 / Pyboard D. Optional ESP8266
         self._wifi_pw = config["wifi_pw"]
         self._ssl = config["ssl"]
+        self._time_server = config['time_server']
+        self._time_server_timeout = config['time_server_timeout']
         self._ssl_params = config["ssl_params"]
         # Callbacks and coros
         if self._events:
@@ -275,6 +279,16 @@ class MQTT_base:
                 raise
         await asyncio.sleep_ms(_DEFAULT_MS)
         self.dprint("Connecting to broker.")
+        try:
+            if not not self._time_server:
+                import ntptime
+                ntptime.host=self._time_server
+                ntptime.timeout = self._time_server_timeout 
+                ntptime.settime()
+                t=ntptime.time()
+                self.dprint('time: {}'.format(str(t)))
+        except:
+            self.dprint("can't get current time")
         if self._ssl:
             try:
                 import ssl
