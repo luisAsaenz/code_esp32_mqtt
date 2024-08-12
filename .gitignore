@@ -1,3 +1,2 @@
-certs/clients/student/ca_crt.pem
-certs/clients/student/student_crt.pem
-certs/clients/student/student_key.pem
+certs/*
+certs.tar.gz

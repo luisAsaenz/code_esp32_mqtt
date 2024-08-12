@@ -104,18 +104,13 @@ config['wifi_pw']  = '<fill in>'
 
 config['ssl']  = True
 
-# topic_sub = b'test/topic01'
-
-# config['ssl_params']['server_hostname'] = '192.168.0.219'
-# config['ssl_params']['do_handshake'] = False
-# config['ssl_params']['cert_reqs'] = ssl.CERT_NONE
 
 # read in DER formatted certs & user key
-with open('certs/clients/student/student_key.pem', 'rb') as f:
+with open('certs/student_key.pem', 'rb') as f:
     key_data = f.read()
-with open('certs/clients/student/student_crt.pem', 'rb') as f:
+with open('certs/student_crt.pem', 'rb') as f:
     cert_data = f.read()
-with open('certs/clients/student/ca_crt.pem', 'rb') as f:
+with open('certs/ca_crt.pem', 'rb') as f:
     ca_data = f.read()
 ssl_params = {}
 ssl_params["cert"] = cert_data
@@ -124,7 +119,7 @@ ssl_params["cadata"] = ca_data
 ssl_params["server_hostname"] = mqtt_server
 ssl_params["cert_reqs"] = ssl.CERT_REQUIRED
 config["time_server"] = mqtt_server
-config["time_server_timeout"] = 5
+config["time_server_timeout"] = 10
 
 config['ssl_params']  = ssl_params
 
