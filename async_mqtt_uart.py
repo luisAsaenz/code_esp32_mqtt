@@ -15,6 +15,10 @@ import time
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
+
+from config import *
+
+
 MAXTX = 4
 
 uart = UART(2, 9600,tx=17,rx=16)
@@ -26,7 +30,7 @@ async def receiver():
     while True:
         res = await sreader.read(1)
         if res==b'\r':
-            await client.publish(TOPIC_PUB, b, qos=1)
+            await client.publish(TEAM+'/'+TOPIC_PUB, b, qos=1)
 
             print('published', b)
             b = b''
@@ -70,7 +74,7 @@ async def wifi_han(state):
 
 # If you connect with clean_session True, must re-subscribe (MQTT spec 3.1.2.4)
 async def conn_han(client):
-    await client.subscribe(TOPIC_SUB, 1)
+    await client.subscribe(TEAM+'/'+TOPIC_SUB, 1)
 
 async def main(client):
     try:
@@ -83,28 +87,16 @@ async def main(client):
         await asyncio.sleep(5)
         print('publish', n)
         # If WiFi is down the following will pause for the duration.
-        await client.publish(TOPIC_PUB, '{} {}'.format(n, client.REPUB_COUNT), qos = 1)
+        await client.publish(TEAM+'/'+TOPIC_HB, '{} {}'.format(n, client.REPUB_COUNT), qos = 1)
         n += 1
 
 # Define configuration
-TOPIC_PUB = 'EGR314/Team321/ABC'
-TOPIC_SUB = 'EGR314/Team321/ABC'
 
-
-
-mqtt_server = '<fill in>'
-port=8883
-user='student'
-client_id = 'client1'
-
-
-config['server'] = mqtt_server # can also be a hostname
-config['ssid']     = '<fill in>'
-config['wifi_pw']  = '<fill in>'
+config['server'] = MQTT_SERVER
+config['ssid']     = WIFI_SSID
+config['wifi_pw']  = WIFI_PASSWORD
 
 config['ssl']  = True
-
-
 # read in DER formatted certs & user key
 with open('certs/student_key.pem', 'rb') as f:
     key_data = f.read()
@@ -116,9 +108,9 @@ ssl_params = {}
 ssl_params["cert"] = cert_data
 ssl_params["key"] = key_data
 ssl_params["cadata"] = ca_data
-ssl_params["server_hostname"] = mqtt_server
+ssl_params["server_hostname"] = MQTT_SERVER
 ssl_params["cert_reqs"] = ssl.CERT_REQUIRED
-config["time_server"] = mqtt_server
+config["time_server"] = MQTT_SERVER
 config["time_server_timeout"] = 10
 
 config['ssl_params']  = ssl_params
@@ -127,8 +119,8 @@ config['subs_cb'] = sub_cb
 config['wifi_coro'] = wifi_han
 config['connect_coro'] = conn_han
 config['clean'] = True
-config['user'] = 'student'
-config["password"] = 'egr3x4'
+config['user'] = MQTT_USER
+config["password"] = MQTT_PASSWORD
 
 # Set up client
 MQTTClient.DEBUG = True  # Optional
