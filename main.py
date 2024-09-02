@@ -14,8 +14,6 @@ from machine import UART
 import time
 import logging
 logging.basicConfig(level=logging.DEBUG)
-
-
 from config import *
 
 
@@ -30,7 +28,7 @@ async def receiver():
     while True:
         res = await sreader.read(1)
         if res==b'\r':
-            await client.publish(TEAM+'/'+TOPIC_PUB, b, qos=1)
+            await client.publish(TOPIC_PUB, b, qos=1)
 
             print('published', b)
             b = b''
@@ -62,7 +60,7 @@ async def wifi_han(state):
 
 # If you connect with clean_session True, must re-subscribe (MQTT spec 3.1.2.4)
 async def conn_han(client):
-    await client.subscribe(TEAM+'/'+TOPIC_SUB, 1)
+    await client.subscribe(TOPIC_SUB, 1)
 
 async def main(client):
     try:
@@ -75,7 +73,7 @@ async def main(client):
         await asyncio.sleep(5)
         print('publish', n)
         # If WiFi is down the following will pause for the duration.
-        await client.publish(TEAM+'/'+TOPIC_HB, '{} {}'.format(n, client.REPUB_COUNT), qos = 1)
+        await client.publish(TOPIC_HB, '{} {}'.format(n, client.REPUB_COUNT), qos = 1)
         n += 1
 
 # Define configuration
