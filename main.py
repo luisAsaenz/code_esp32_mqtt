@@ -27,6 +27,8 @@ async def receiver():
     sreader = asyncio.StreamReader(uart)
     while True:
         res = await sreader.read(1)
+        # if res is not None:
+        #     print(res)
         if res==b'\r':
             await client.publish(TOPIC_PUB, b, qos=1)
 
@@ -42,7 +44,7 @@ def sub_cb(topic, msg, retained):
 
     uart.write(msg)
     uart.write('\r\n')
-    time.sleep(.01)
+    # time.sleep(.01)
 
 
 # Demonstrate scheduler is operational.
@@ -68,6 +70,8 @@ async def main(client):
     except OSError:
         print('Connection failed.')
         return
+    asyncio.create_task(receiver())
+
     n = 0
     while True:
         await asyncio.sleep(5)
@@ -123,28 +127,3 @@ finally:
 
 
 
-
-
-
-
-
-
-
-
-# Change the following configs to suit your environment
-
-
-
-
-async def main(client):
-    await client.connect()
-    asyncio.create_task(receiver())
-    while True:
-        await asyncio.sleep(1)
-
-# config.subs_cb = callback
-# config.connect_coro = conn_callback
-
-client = MQTTClient(config)
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main(client))
