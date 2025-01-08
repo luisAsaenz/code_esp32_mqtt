@@ -27,15 +27,12 @@ async def receiver():
     sreader = asyncio.StreamReader(uart)
     while True:
         res = await sreader.read(1)
-        # if res is not None:
-        #     print(res)
-        if res==b'\r':
+        # print(res)
+        b+=res
+        if b[-2:]==b'\x59\x42':
             await client.publish(TOPIC_PUB, b, qos=1)
-
             print('published', b)
             b = b''
-        else:
-            b+=res
 
 # Subscription callback
 def sub_cb(topic, msg, retained):
@@ -43,7 +40,7 @@ def sub_cb(topic, msg, retained):
     print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
 
     uart.write(msg)
-    uart.write('\r\n')
+    # uart.write('\r\n')
     # time.sleep(.01)
 
 
@@ -67,6 +64,7 @@ async def conn_han(client):
 async def main(client):
     try:
         await client.connect()
+        print('Connection established.')
     except OSError:
         print('Connection failed.')
         return
@@ -75,7 +73,7 @@ async def main(client):
     n = 0
     while True:
         await asyncio.sleep(5)
-        print('publish', n)
+        # print('publish', n)
         # If WiFi is down the following will pause for the duration.
         await client.publish(TOPIC_HB, '{} {}'.format(n, client.REPUB_COUNT), qos = 1)
         n += 1
@@ -113,7 +111,7 @@ config['user'] = MQTT_USER
 config["password"] = MQTT_PASSWORD
 
 # Set up client
-MQTTClient.DEBUG = True  # Optional
+MQTTClient.DEBUG = False  # Optional
 client = MQTTClient(config)
 
 asyncio.create_task(heartbeat())
