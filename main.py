@@ -31,20 +31,20 @@ def send_message(message):
     # send_queue.append(message)
 
 def fun7(message):
-    print('I am fun7')
+    print('Saw an H')
 
 def fun3(message):
     print('I am fun3')
 
 def handle_message(message):
-    if message[2]==id:
+    if message[2:3]==my_id:
         print('from me')
         pass #do nothing with it, it was not received
-    elif message[3]==id:
+    if message[3:4]==my_id:
         print('to me')
         handle_my_message(message)
-    elif message[3]==broadcast:
-        print('to me')
+    elif message[3:4]==broadcast:
+        print('broadcast')
         handle_my_message(message)
         send_message(message)
     else:
@@ -53,12 +53,9 @@ def handle_message(message):
 
 def handle_my_message(message):
     # print('handle_my_message')
-    if message[2]==7:
+    if message[4:5]==b'H':
         # print('handle function 7')
         fun7(message)
-    elif message[2]==3:
-        # print('handle function 3')
-        fun3(message)
     
 
 async def receiver():
@@ -75,19 +72,23 @@ async def receiver():
             message=b''
             message+=buffer[-2:-1]
             message_incoming=True
-        if buffer[-2:]==b'YB':
-            message+=buffer[-1:]
-            await client.publish(TOPIC_PUB, message, qos=1)
-            print('published', message)
-            message_incoming=False
         if message_incoming:
-            message+=buffer[-1:]
-            if len(message)==3:
-                if message[-1:]==my_id:
-                    print('message from me')
-            if len(message)==4:
-                if message[-1:]==my_id:
-                    print('message to me')
+            if buffer[-2:]==b'YB':
+                message+=buffer[-1:]
+                handle_message(message)
+                await client.publish(TOPIC_PUB, message, qos=1)
+                print('published', message)
+                message_incoming=False
+            else:
+                message+=buffer[-1:]
+                if len(message)==3:
+                    if message[-1:]==my_id:
+                        print('message from me')
+                if len(message)==4:
+                    if message[-1:]==my_id:
+                        print('message to me')
+                    elif message[-1:]==broadcast:
+                        print('message to all')
 # Subscription callback
 def sub_cb(topic, msg, retained):
 
