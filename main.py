@@ -27,9 +27,10 @@ async def receiver():
     sreader = asyncio.StreamReader(uart)
     while True:
         res = await sreader.read(1)
-        # print(res)
+        print(res)
         b+=res
-        if b[-2:]==b'\x59\x42':
+        # if b[-2:]==b'\x59\x42':
+        if b[-2:]==b'YB':
             await client.publish(TOPIC_PUB, b, qos=1)
             print('published', b)
             b = b''
