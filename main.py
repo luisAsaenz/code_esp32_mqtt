@@ -16,25 +16,78 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 from config import *
 
+my_id = b'a'
+team = b'abcd'
+broadcast = b'z'
 
 MAXTX = 4
 
 uart = UART(2, 9600,tx=17,rx=16)
 uart.init(9600, bits=8, parity=None, stop=1,flow=0) # init with given parameters
 
-async def receiver():
-    b = b''
-    sreader = asyncio.StreamReader(uart)
-    while True:
-        res = await sreader.read(1)
-        print(res)
-        b+=res
-        # if b[-2:]==b'\x59\x42':
-        if b[-2:]==b'YB':
-            await client.publish(TOPIC_PUB, b, qos=1)
-            print('published', b)
-            b = b''
 
+def send_message(message):
+    print('send message')
+    # send_queue.append(message)
+
+def fun7(message):
+    print('I am fun7')
+
+def fun3(message):
+    print('I am fun3')
+
+def handle_message(message):
+    if message[2]==id:
+        print('from me')
+        pass #do nothing with it, it was not received
+    elif message[3]==id:
+        print('to me')
+        handle_my_message(message)
+    elif message[3]==broadcast:
+        print('to me')
+        handle_my_message(message)
+        send_message(message)
+    else:
+        print('to someone else')
+        send_message(message)
+
+def handle_my_message(message):
+    # print('handle_my_message')
+    if message[2]==7:
+        # print('handle function 7')
+        fun7(message)
+    elif message[2]==3:
+        # print('handle function 3')
+        fun3(message)
+    
+
+async def receiver():
+    buffer = b'\x00\x00\x00\x00'
+    sreader = asyncio.StreamReader(uart)
+    message_incoming=False
+    while True:
+        c=await sreader.read(1)
+        # print(c)
+        buffer+=c
+        while  len(buffer)>4:
+            buffer=buffer[1:]
+        if buffer[-2:]==b'AZ':
+            message=b''
+            message+=buffer[-2:-1]
+            message_incoming=True
+        if buffer[-2:]==b'YB':
+            message+=buffer[-1:]
+            await client.publish(TOPIC_PUB, message, qos=1)
+            print('published', message)
+            message_incoming=False
+        if message_incoming:
+            message+=buffer[-1:]
+            if len(message)==3:
+                if message[-1:]==my_id:
+                    print('message from me')
+            if len(message)==4:
+                if message[-1:]==my_id:
+                    print('message to me')
 # Subscription callback
 def sub_cb(topic, msg, retained):
 
