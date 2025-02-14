@@ -10,94 +10,21 @@ import ssl
 from mqtt_as.mqtt_as import MQTTClient
 from mqtt_as.mqtt_local import wifi_led, blue_led, config
 import uasyncio as asyncio
-from machine import UART
 import time
 import logging
 logging.basicConfig(level=logging.DEBUG)
 from config import *
-
-my_id = b'a'
-team = b'abcd'
-broadcast = b'z'
+import my_oled
 
 MAXTX = 4
 
-uart = UART(2, 9600,tx=17,rx=16)
-uart.init(9600, bits=8, parity=None, stop=1,flow=0) # init with given parameters
-
-
-def send_message(message):
-    print('send message')
-    # send_queue.append(message)
-
-def fun7(message):
-    print('Saw an H')
-
-def fun3(message):
-    print('I am fun3')
-
-def handle_message(message):
-    if message[2:3]==my_id:
-        print('from me')
-        pass #do nothing with it, it was not received
-    if message[3:4]==my_id:
-        print('to me')
-        handle_my_message(message)
-    elif message[3:4]==broadcast:
-        print('broadcast')
-        handle_my_message(message)
-        send_message(message)
-    else:
-        print('to someone else')
-        send_message(message)
-
-def handle_my_message(message):
-    # print('handle_my_message')
-    if message[4:5]==b'H':
-        # print('handle function 7')
-        fun7(message)
-    
-
-async def receiver():
-    buffer = b'\x00\x00\x00\x00'
-    sreader = asyncio.StreamReader(uart)
-    message_incoming=False
-    while True:
-        c=await sreader.read(1)
-        # print(c)
-        buffer+=c
-        while  len(buffer)>4:
-            buffer=buffer[1:]
-        if buffer[-2:]==b'AZ':
-            message=b''
-            message+=buffer[-2:-1]
-            message_incoming=True
-        if message_incoming:
-            if buffer[-2:]==b'YB':
-                message+=buffer[-1:]
-                handle_message(message)
-                await client.publish(TOPIC_PUB, message, qos=1)
-                print('published', message)
-                message_incoming=False
-            else:
-                message+=buffer[-1:]
-                if len(message)==3:
-                    if message[-1:]==my_id:
-                        print('message from me')
-                if len(message)==4:
-                    if message[-1:]==my_id:
-                        print('message to me')
-                    elif message[-1:]==broadcast:
-                        print('message to all')
 # Subscription callback
 def sub_cb(topic, msg, retained):
 
     print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
 
-    uart.write(msg)
-    # uart.write('\r\n')
-    # time.sleep(.01)
-
+    # my_oled.print_data(msg)
+    # my_oled.plot_data(msg)
 
 # Demonstrate scheduler is operational.
 async def heartbeat():
