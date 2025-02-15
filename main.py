@@ -12,8 +12,6 @@ from mqtt_as.mqtt_local import wifi_led, blue_led, config
 import uasyncio as asyncio
 from machine import UART
 import time
-import logging
-logging.basicConfig(level=logging.DEBUG)
 from config import *
 
 
@@ -27,9 +25,8 @@ async def receiver():
     sreader = asyncio.StreamReader(uart)
     while True:
         res = await sreader.read(1)
-        # if res is not None:
-        #     print(res)
-        if res==b'\r':
+        if res==b';':
+            b+=res
             await client.publish(TOPIC_PUB, b, qos=1)
 
             print('published', b)
@@ -43,7 +40,6 @@ def sub_cb(topic, msg, retained):
     print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
 
     uart.write(msg)
-    uart.write('\r\n')
     # time.sleep(.01)
 
 
