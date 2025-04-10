@@ -11,14 +11,26 @@ from mqtt_as.mqtt_as import MQTTClient
 from mqtt_as.mqtt_local import wifi_led, blue_led, config
 import uasyncio as asyncio
 from machine import UART
+from machine import Pin
 import time
 from config import *
 
-
+button = Pin(26,Pin.IN) # Button to SEND MESSAGE to MQTT broker
 MAXTX = 4
 
 uart = UART(2, 9600,tx=17,rx=16)
 uart.init(9600, bits=8, parity=None, stop=1,flow=0) # init with given parameters
+laststate = 0
+async def readingButton():
+    while True:
+        current_state = button.value()
+        if current_state == 0:
+            #print("Button Pressed")
+            uart.write(b'button pressed;')
+            laststate = current_state
+            await asyncio.sleep_ms(750)
+        
+
 
 async def receiver():
     b = b''
@@ -113,6 +125,8 @@ MQTTClient.DEBUG = True  # Optional
 client = MQTTClient(config)
 
 asyncio.create_task(heartbeat())
+asyncio.create_task(readingButton())
+
 try:
     asyncio.run(main(client))
 finally:
