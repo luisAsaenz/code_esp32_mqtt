@@ -15,22 +15,28 @@ from machine import Pin
 import time
 from config import *
 
-button = Pin(27,Pin.IN) # Button to SEND MESSAGE to MQTT broker
+buttondebug = Pin(25,Pin.IN) # Button to SEND MESSAGE to MQTT broker
 MAXTX = 4
 
 uart = UART(2, 9600,tx=17,rx=16)
 uart.init(9600, bits=8, parity=None, stop=1,flow=0) # init with given parameters
-laststate = 0
-async def readingButton():
-    while True:
-        await asyncio.sleep_ms(750)
 
-        current_state = button.value()
-        if current_state == 0:
-            #print("Button Pressed")
-            uart.write('button pressed;')
-            laststate = current_state
-        
+async def readingButton():
+    laststate = 0
+    try:
+        while True:
+            await asyncio.sleep_ms(50)
+
+            current_state = buttondebug.value()
+            if current_state != laststate:
+                #print("Button Pressed")
+                laststate = current_state
+                if current_state == 0:
+                    uart.write(b'button pressed;')
+                laststate = current_state
+            await asyncio.sleep_ms(20)
+    except: 
+        pass
 
 
 async def receiver():
@@ -80,6 +86,8 @@ async def main(client):
         print('Connection failed.')
         return
     asyncio.create_task(receiver())
+    asyncio.create_task(readingButton())
+
 
     n = 0
     while True:
@@ -126,7 +134,6 @@ MQTTClient.DEBUG = True  # Optional
 client = MQTTClient(config)
 
 asyncio.create_task(heartbeat())
-asyncio.create_task(readingButton())
 
 try:
     asyncio.run(main(client))
