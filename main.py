@@ -28,7 +28,7 @@ uart = UART(2, 9600,tx=17,rx=16)
 uart.init(9600, bits=8, parity=None, stop=1) 
 # define pin 2 as an output with name led. (Pin 2 is connected to the ESP32-WROOM dev board's onboard blue LED)
 buttondebug = Pin(25,Pin.IN, Pin.PULL_UP) # Button to SEND MESSAGE to MQTT broker
-led = Pin(19,Pin.OUT) #change LED
+led = Pin(19,Pin.OUT) #change LED from 2
 
 sensor_val = 0
 sensor_dict = {
@@ -38,6 +38,12 @@ sensor_dict = {
 sensor_state = {
     '1': 0,
     '2': 0
+}
+topic_subscribed = {
+    'SUB' : 0
+}
+topic_message = {
+    'SUB' : b''
 }
 MAXTX = 4
 received_sv = 0
@@ -77,6 +83,75 @@ def send_message(message):
 
 
     # send_queue.append(message)
+async def sb_cb_msghandler():
+    while True:
+        await asyncio.sleep_ms(10)
+        topic_rv_msg = ''
+        for key in topic_subscribed.keys():
+            if topic_subscribed[key] == 1:
+                topic_rv_msg = key
+
+        if topic_rv_msg is not None:
+            # send message to frank
+            topic_subscribed[topic_rv_msg] = 0
+
+            if topic_rv_msg == 'SUB':
+                msg = topic_message[topic_rv_msg]
+
+            
+                print(f'this is from cb msg handler: {msg}') #debug
+                try:
+                    s = b''
+                    if msg[-1:] != b';':
+                        msg = b'End message in ";"'
+                        await client.publish(TOPIC_PUB, msg, qos=1)
+                        topic_subscribed[topic_rv_msg] = 0
+
+
+                    #print('End message in ";"') #debug
+                        continue
+                    else:
+                        if len(msg) > 3:
+                            await client.publish(TOPIC_PUB, b'Entry too long. Exmample: 20;', qos=1)
+                            topic_subscribed[topic_rv_msg] = 0
+   
+                            continue
+                        elif len(msg) < 3:
+                            await client.publish(TOPIC_PUB, b'Entry too short. Example : 11;', qos=1)
+                            topic_subscribed[topic_rv_msg] = 0
+
+                            continue
+                        else:
+                            if msg[0:1] not in b'123':
+                                await client.publish(TOPIC_PUB, b'Motor ID is unaccepted. Try values: 1, 2, 3 . Ending message in ";"', qos=1)
+                                topic_subscribed[topic_rv_msg] = 0
+
+                                continue
+
+                            if msg[1:2] not in b'012':
+                                if type(msg[1:2]) != bytearray:
+                                    await client.publish(TOPIC_PUB, b'Use regular characters when entering values. Try values: 0, 1, 2. Followed by ";"', qos=1)
+                                    topic_subscribed[topic_rv_msg] = 0
+
+                                    continue
+                                else:
+                                    await client.publish(TOPIC_PUB, b'Entry unaccepted. Try values: 0, 1, 2. Followed by ";"', qos=1)
+                                    topic_subscribed[topic_rv_msg] = 0
+
+                                    continue
+                    #now that error handling is done. we check once again if msg is in index of acceptable values
+                            if msg[1:2] in b'012':                    # can possibly get rid of if statement since we 
+                                s = b'AZbd\x01'+ msg[0:2] + b'YB'     # check previously if id and value are in acceptable range
+                                send_message(s)
+                                s = 'Motor {}, is set to: {}'.format(msg[0:1].decode(), msg[1:2].decode())
+
+
+                                await client.publish(TOPIC_PUB, s.encode(), qos=1)
+
+                                s=b''
+                except IndexError:
+                    pass
+
 
 def handle_message(message):
     my_string = message.decode('utf-8')
@@ -263,47 +338,66 @@ async def readingButton():
     except: 
         pass
 
+msgfor_sb = b''
 
 # Subscription callback
 def sub_cb(topic, msg, retained):
+    msg
 
     print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
-    
-    if topic.decode()[-3:] == 'SUB':
-        # send message to frank
-        try:
-            s = b''
-            if msg[-1:] != b';':
-                await client.publish(TOPIC_PUB, b'End message in ";"', qos=1)
-                return
-            else:
-                if len(msg) > 3:
-                    await client.publish(TOPIC_PUB, b'Entry too long. Try values: 0, 1, 2. Followed by ";"', qos=1)
-                    return
-                else:
-                    if len(msg) < 3:
-                        await client.publish(TOPIC_PUB, b'Please enter a value. Try values: 0, 1, 2. Followed by ";"', qos=1)
-                        return
-                    if msg[1:2] not in b'012':
-                        if type(msg[1:2]) != bytes:
-                            await client.publish(TOPIC_PUB, b'Use regular characters when entering values. Try values: 0, 1, 2. Followed by ";"', qos=1)
-                            return
-                        else:
-                            await client.publish(TOPIC_PUB, b'Entry unaccepted. Try values: 0, 1, 2. Followed by ";"', qos=1)
-                            return
-                #now that error handling is done. we check once again if msg is in index of acceptable values
-                if msg[1:2] in b'012':
-                    s = b'AZbd\x011'+ msg[1:2] + b'YB'
-                    await client.publish(TOPIC_PUB, msg, qos=1)
+    if topic.decode()[-3:] in topic_subscribed.keys():
+        topic_message[topic.decode()[-3:]] = msg
+        topic_subscribed[topic.decode()[-3:]] = 1
 
-                    send_message(s)
-        except IndexError:
-            pass
+    # if topic.decode()[-3:] == 'SUB':
+    #     # send message to frank
+    #     print(msg) #debug
+    #     try:
+    #         s = b''
+    #         if msg[-1:] != b';':
+    #             msg = b'End message in ";"'
+    #             client.publish(TOPIC_PUB, msg, qos=1)
+                
+                
+    #             #print('End message in ";"') #debug
+    #             return
+    #         else:
+    #             if len(msg) > 3:
+    #                 client.publish(TOPIC_PUB, b'Entry too long. Try values: 0, 1, 2. Followed by ";"', qos=1)
+    #                 return
+    #             elif len(msg) < 3:
+    #                 client.publish(TOPIC_PUB, b'Please enter a value. Try values: 0, 1, 2. Followed by ";"', qos=1)
+    #                 return
+    #             else:
+    #                 if msg[0:1] not in b'123':
+    #                     client.publish(TOPIC_PUB, b'Motor ID is unaccepted. Try values: 1, 2,3 3. Ending message in ";"', qos=1)
+    #                     return
+
+    #                 if msg[1:2] not in b'012':
+    #                     if type(msg[1:2]) != bytes:
+    #                         client.publish(TOPIC_PUB, b'Use regular characters when entering values. Try values: 0, 1, 2. Followed by ";"', qos=1)
+    #                         return
+    #                     else:
+    #                         client.publish(TOPIC_PUB, b'Entry unaccepted. Try values: 0, 1, 2. Followed by ";"', qos=1)
+    #                         return
+    #             #now that error handling is done. we check once again if msg is in index of acceptable values
+    #                 if msg[1:2] in b'012':                    # can possibly get rid of if statement since we 
+    #                     s = b'AZbd\x01'+ msg[0:2] + b'YB'     # check previously if id and value are in acceptable range
+    #                     send_message(s)
+    #                     s = 'Motor {}, is set to: {}'.format(msg[0:1], msg[1:2])
+                        
+                        
+
+    #                     client.publish(TOPIC_PUB, s.encode(), qos=1)
+    #                     s=b''
+
+    #     except IndexError:
+    #         pass
 
 async def sensor_update():
     while True:
         await asyncio.sleep_ms(100)
-        if sensor_state['1'] and sensor_state['2'] == 0:
+        if (sensor_state['1'] == 0  and sensor_state['2'] == 0):
             sensor_vals = 'The value of sensor 1: not connected. Sensor 2: not connected'
         elif sensor_state['1'] or sensor_state['2'] == 0:
             if sensor_state['1'] == 1:
@@ -315,7 +409,7 @@ async def sensor_update():
             sensor_vals = 'The value of sensor 1: {}. Sensor 2: {}'.format(sensor_dict['1'], sensor_dict['2'])
          
 
-        await client.publish(TOPIC_SENSOR, sensor_vals, qos=1)
+        await client.publish(TOPIC_SENSOR, sensor_vals.encode(), qos=1)
 
 
     # time.sleep(.01)
@@ -353,6 +447,7 @@ async def main(client):
     ##asyncio.create_task(process_rx())
     asyncio.create_task(readingButton())
     asyncio.create_task(sensor_update())
+    asyncio.create_task(sb_cb_msghandler())
 
 
 
