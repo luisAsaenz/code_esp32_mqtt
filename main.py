@@ -23,19 +23,16 @@ id = b'b' #tyler - c , alex - a, frank - d
 broadcast = b'X'
 
 # initialize a new UART class
-uart = UART(2, 9600,tx=17,rx=16)
+uart = UART(1, 9600,tx=17,rx=18)
+
 # run the init method with more details including baudrate and parity
 uart.init(9600, bits=8, parity=None, stop=1) 
 # define pin 2 as an output with name led. (Pin 2 is connected to the ESP32-WROOM dev board's onboard blue LED)
-buttondebug = Pin(25,Pin.IN, Pin.PULL_UP) # Button to SEND MESSAGE to MQTT broker
+buttondebug = Pin(7,Pin.IN) # Button to SEND MESSAGE to MQTT broker
 led = Pin(19,Pin.OUT) #change LED from 2
 
 sensor_val_state = [0, 0]
 
-sensor_state = {
-    '1': 0,
-    '2': 0
-}
 topic_subscribed = {
     'SUB' : 0,
     'RPM' : 0
@@ -49,7 +46,6 @@ last_msg = {
 }
 MAXTX = 4
 received_sv = 0
-token = 0
 
 
 
@@ -100,8 +96,8 @@ async def sb_cb_msghandler():
             # send message to frank
             topic_subscribed[topic_rv_msg] = 0
             msg = topic_message.get(topic_rv_msg, b'TOPIC NOT IN DICTIONARY')
-            print(topic_rv_msg)
-            print(msg)
+            #print(topic_rv_msg)
+            #print(msg)
 
             try:
                 s = b''
@@ -160,6 +156,9 @@ async def sb_cb_msghandler():
                             else:
                                 s = f'Setting RPM to: {target_RPM};'
                                 print(s)
+                                s_msg = b'AZbc'+ bytes([target_RPM]) + b'YB'     # check previously if id and value are in acceptable range
+                                send_message(s_msg)
+                                
                                 # send message to Tyler
                                 #await client.publish(TOPIC_RPM, s.encode(), qos=1)
                         except ValueError:
@@ -249,10 +248,16 @@ async def process_rx():
     message = b''
     send_queue = []
     receiving_message=False
+    token = 0
 
     while True:
         # read one byte
         c = uart.read(1)
+        if token == 0:
+            print('ESP: Process_RX function is being ran.')
+            token = 1
+        if c is not None:
+            print(c)
         # if c is not empty:
         
             
