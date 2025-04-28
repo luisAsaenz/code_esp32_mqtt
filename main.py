@@ -30,23 +30,27 @@ uart.init(9600, bits=8, parity=None, stop=1)
 buttondebug = Pin(25,Pin.IN, Pin.PULL_UP) # Button to SEND MESSAGE to MQTT broker
 led = Pin(19,Pin.OUT) #change LED from 2
 
-sensor_val = 0
-sensor_dict = {
-    '1': 0,
-    '2': 0
-}
+sensor_val_state = [0, 0]
+
 sensor_state = {
     '1': 0,
     '2': 0
 }
 topic_subscribed = {
-    'SUB' : 0
+    'SUB' : 0,
+    'RPM' : 0
 }
 topic_message = {
-    'SUB' : b''
+    'SUB' : b'',
+    'RPM' : b''
+}
+last_msg = {
+    'RPM' : b''
 }
 MAXTX = 4
 received_sv = 0
+token = 0
+
 
 
 def send_message(message):
@@ -87,52 +91,41 @@ async def sb_cb_msghandler():
     while True:
         await asyncio.sleep_ms(10)
         topic_rv_msg = ''
-        for key in topic_subscribed.keys():
-            if topic_subscribed[key] == 1:
-                topic_rv_msg = key
+        for k in list(topic_subscribed.keys()):
+            if topic_subscribed[k] == 1:
+                topic_rv_msg = k
+                break
 
-        if topic_rv_msg is not None:
+        if topic_rv_msg is not '':
             # send message to frank
             topic_subscribed[topic_rv_msg] = 0
+            msg = topic_message.get(topic_rv_msg, b'TOPIC NOT IN DICTIONARY')
+            print(topic_rv_msg)
+            print(msg)
 
-            if topic_rv_msg == 'SUB':
-                msg = topic_message[topic_rv_msg]
-
-            
-                print(f'this is from cb msg handler: {msg}') #debug
-                try:
-                    s = b''
-                    if msg[-1:] != b';':
-                        msg = b'End message in ";"'
+            try:
+                s = b''
+                if msg[-1:] != b';':
+                    msg = b'End message in ";"'
+                    if topic_rv_msg == 'SUB':
                         await client.publish(TOPIC_PUB, msg, qos=1)
-                        topic_subscribed[topic_rv_msg] = 0
-
-
+                    else: 
+                        last_msg[topic_rv_msg] = msg
+                        await client.publish(TOPIC_RPM, msg, qos=1)
                     #print('End message in ";"') #debug
-                        continue
-                    else:
-                        if len(msg) > 3:
-                            await client.publish(TOPIC_PUB, b'Entry too long. Exmample: 20;', qos=1)
-                            topic_subscribed[topic_rv_msg] = 0
-   
-                            continue
-                        elif len(msg) < 3:
-                            await client.publish(TOPIC_PUB, b'Entry too short. Example : 11;', qos=1)
-                            topic_subscribed[topic_rv_msg] = 0
+                else:
+                    if topic_rv_msg == 'SUB':
+                        if len(msg) > 2 or len(msg) < 2:
+                            s = str('Entry too ' + ('long' if len(msg)>2 else 'short') + '. Here is an example, 2;')   
+                            await client.publish(TOPIC_PUB, s.encode(), qos=1)
+                            topic_subscribed[topic_rv_msg] = 0   
 
                             continue
                         else:
-                            if msg[0:1] not in b'123':
-                                await client.publish(TOPIC_PUB, b'Motor ID is unaccepted. Try values: 1, 2, 3 . Ending message in ";"', qos=1)
-                                topic_subscribed[topic_rv_msg] = 0
-
-                                continue
-
-                            if msg[1:2] not in b'012':
-                                if type(msg[1:2]) != bytearray:
+                            if msg[0:1] not in b'012':
+                                if type(msg[0:1]) != bytearray:
                                     await client.publish(TOPIC_PUB, b'Use regular characters when entering values. Try values: 0, 1, 2. Followed by ";"', qos=1)
                                     topic_subscribed[topic_rv_msg] = 0
-
                                     continue
                                 else:
                                     await client.publish(TOPIC_PUB, b'Entry unaccepted. Try values: 0, 1, 2. Followed by ";"', qos=1)
@@ -140,17 +133,44 @@ async def sb_cb_msghandler():
 
                                     continue
                     #now that error handling is done. we check once again if msg is in index of acceptable values
-                            if msg[1:2] in b'012':                    # can possibly get rid of if statement since we 
-                                s = b'AZbd\x01'+ msg[0:2] + b'YB'     # check previously if id and value are in acceptable range
+                            else:                    # can possibly get rid of if statement since we 
+                                s = b'AZbd'+ msg[0:1] + b'YB'     # check previously if id and value are in acceptable range
                                 send_message(s)
-                                s = 'Motor {}, is set to: {}'.format(msg[0:1].decode(), msg[1:2].decode())
+                                s = 'Motor is set to: {}'.format(msg[0:1].decode())
 
 
                                 await client.publish(TOPIC_PUB, s.encode(), qos=1)
 
                                 s=b''
-                except IndexError:
-                    pass
+
+                    elif topic_rv_msg == 'RPM':
+                        try:
+                            target_RPM = int(msg[0:-1])
+                            print(f"this is target RPM: {target_RPM}")
+                            if target_RPM > 100 or target_RPM < 0:
+                                if target_RPM > 100:
+                                    s = f'Entry, {target_RPM}, unaccepted, too large. Try a value between 0 and 100;'
+                                    #await client.publish(TOPIC_RPM, s.encode(), qos=1)
+                                else:
+                                    s = f'Entry, {target_RPM}, unaccepted, not large enough. Try a value between 0 and 100;'
+
+                                    #await client.publish(TOPIC_RPM, s.encode(), qos=1)
+                            elif len(msg) < 2 or len(msg) > 4:
+                                s = 'Message is too, ' + 'short;' if len(msg) < 2 else 'long;'
+                            else:
+                                s = f'Setting RPM to: {target_RPM};'
+                                print(s)
+                                # send message to Tyler
+                                #await client.publish(TOPIC_RPM, s.encode(), qos=1)
+                        except ValueError:
+                            s = 'Entry unaccepted. Value has to be a number;'
+                            #await client.publish(TOPIC_RPM, s.encode(), qos=1)
+                        s= str(s)
+                        last_msg[topic_rv_msg] = s.encode()
+                        await client.publish(TOPIC_RPM, s.encode(), qos=1)
+            
+            except IndexError:
+                pass
 
 
 def handle_message(message):
@@ -172,22 +192,14 @@ def handle_message(message):
                 print(f'ESP: handling my message {message}')
             if message_type == 2:
                 # Handle message type 2
-                sensor_id = my_string[5]
-                sensor_value = message[6]
-                if sensor_id not in sensor_dict.keys():
-                    print('ESP: sensor id is invalid. Try, 1 or 2.')
+                sensor_value = message[5]
+                if sensor_value > 100:
+                    print('ESP: sensor value is too out of range')
                     sensor_value = 0
                 else:
-                    if sensor_value > 100:
-                        print('ESP: sensor value is too out of range')
-                        sensor_value = 0
-                    else:
-                        print(f'ESP: message contains sensor {sensor_id} value: {sensor_value}')
-                        sensor_dict[sensor_id] = sensor_value
-                        sensor_state[sensor_id] = 1 
-
-
-                pass
+                    print(f'ESP: message contains sensor value: {sensor_value}')
+                    sensor_val_state[0] = sensor_value
+                    sensor_val_state[1] = 1            
 
             elif message_type == 5:
                 # Handle message type 5
@@ -338,75 +350,32 @@ async def readingButton():
     except: 
         pass
 
-msgfor_sb = b''
 
 # Subscription callback
 def sub_cb(topic, msg, retained):
-    msg
+    
 
     print(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
-    if topic.decode()[-3:] in topic_subscribed.keys():
-        topic_message[topic.decode()[-3:]] = msg
-        topic_subscribed[topic.decode()[-3:]] = 1
+    if topic.decode()[-3:] == 'SUB':
+        if msg.decode() == "h;\n" and topic_subscribed['SUB'] == 0:
+            pass
+        else:
+            topic_message[topic.decode()[-3:]] = msg
+            topic_subscribed[topic.decode()[-3:]] = 1
+    elif topic.decode()[-3:] == 'RPM':
+        if last_msg[topic.decode()[-3:]] != msg:
+            topic_message[topic.decode()[-3:]] = msg
+            topic_subscribed[topic.decode()[-3:]] = 1
 
-    # if topic.decode()[-3:] == 'SUB':
-    #     # send message to frank
-    #     print(msg) #debug
-    #     try:
-    #         s = b''
-    #         if msg[-1:] != b';':
-    #             msg = b'End message in ";"'
-    #             client.publish(TOPIC_PUB, msg, qos=1)
-                
-                
-    #             #print('End message in ";"') #debug
-    #             return
-    #         else:
-    #             if len(msg) > 3:
-    #                 client.publish(TOPIC_PUB, b'Entry too long. Try values: 0, 1, 2. Followed by ";"', qos=1)
-    #                 return
-    #             elif len(msg) < 3:
-    #                 client.publish(TOPIC_PUB, b'Please enter a value. Try values: 0, 1, 2. Followed by ";"', qos=1)
-    #                 return
-    #             else:
-    #                 if msg[0:1] not in b'123':
-    #                     client.publish(TOPIC_PUB, b'Motor ID is unaccepted. Try values: 1, 2,3 3. Ending message in ";"', qos=1)
-    #                     return
 
-    #                 if msg[1:2] not in b'012':
-    #                     if type(msg[1:2]) != bytes:
-    #                         client.publish(TOPIC_PUB, b'Use regular characters when entering values. Try values: 0, 1, 2. Followed by ";"', qos=1)
-    #                         return
-    #                     else:
-    #                         client.publish(TOPIC_PUB, b'Entry unaccepted. Try values: 0, 1, 2. Followed by ";"', qos=1)
-    #                         return
-    #             #now that error handling is done. we check once again if msg is in index of acceptable values
-    #                 if msg[1:2] in b'012':                    # can possibly get rid of if statement since we 
-    #                     s = b'AZbd\x01'+ msg[0:2] + b'YB'     # check previously if id and value are in acceptable range
-    #                     send_message(s)
-    #                     s = 'Motor {}, is set to: {}'.format(msg[0:1], msg[1:2])
-                        
-                        
-
-    #                     client.publish(TOPIC_PUB, s.encode(), qos=1)
-    #                     s=b''
-
-    #     except IndexError:
-    #         pass
 
 async def sensor_update():
     while True:
         await asyncio.sleep_ms(100)
-        if (sensor_state['1'] == 0  and sensor_state['2'] == 0):
-            sensor_vals = 'The value of sensor 1: not connected. Sensor 2: not connected'
-        elif sensor_state['1'] or sensor_state['2'] == 0:
-            if sensor_state['1'] == 1:
-                sensor_vals = 'The value of sensor 1: {}. Sensor 2: not connected'.format(sensor_dict['1'])
-            else:
-                sensor_vals = 'The value of sensor 1: not connected Sensor 2: {}'.format(sensor_dict['2'])
-
+        if (sensor_val_state[1] == 0):
+            sensor_vals = 'The RPM at the bottom gate: Sensor not connected.'
         else:
-            sensor_vals = 'The value of sensor 1: {}. Sensor 2: {}'.format(sensor_dict['1'], sensor_dict['2'])
+            sensor_vals = 'The RPM at the bottom gate: {} RPM;'.format(sensor_val_state[0])
          
 
         await client.publish(TOPIC_SENSOR, sensor_vals.encode(), qos=1)
@@ -424,7 +393,6 @@ async def heartbeat():
         s = not s
 
 
-
 async def wifi_han(state):
     wifi_led(not state)
     print('Wifi is ', 'up' if state else 'down')
@@ -434,13 +402,26 @@ async def wifi_han(state):
 
 # If you connect with clean_session True, must re-subscribe (MQTT spec 3.1.2.4)
 async def conn_han(client):
-    await client.subscribe(TOPIC_SUB, 1)
+    await client.subscribe(TOPIC_SUB, 1)    
+
+    
+    await client.subscribe(TOPIC_RPM, 1)
+   
+
 
 
 
 async def main(client):
     try:
         await client.connect()
+
+        s = b'Enter a value in SUB to change gate position. Values accepted: 0  1  2'
+        await client.publish(TOPIC_PUB, s, qos = 1)
+
+        s = b'RPM at bottom gate. Enter a value between 0 and 100:  '
+        last_msg['RPM'] = s
+        await client.publish(TOPIC_RPM, s, qos=1)
+
     except OSError:
         print('Connection failed.')
         return
