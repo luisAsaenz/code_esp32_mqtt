@@ -23,13 +23,17 @@ id = b'b' #tyler - c , alex - a, frank - d
 broadcast = b'X'
 
 # initialize a new UART class
-uart = UART(1, 9600,tx=17,rx=18)
+#uart = UART(2, 9600,tx=17,rx=16) #ESP-WROOM-32 TX:17 RX:16      ESP32-S3 id 1 tx=17,rx=18
+uart = UART(1, 9600,tx=17,rx=18) #ESP-WROOM-32 TX:17 RX:16      ESP32-S3 id 1 tx=17,rx=18
+
 
 # run the init method with more details including baudrate and parity
 uart.init(9600, bits=8, parity=None, stop=1) 
+
 # define pin 2 as an output with name led. (Pin 2 is connected to the ESP32-WROOM dev board's onboard blue LED)
-buttondebug = Pin(7,Pin.IN) # Button to SEND MESSAGE to MQTT broker
-led = Pin(19,Pin.OUT) #change LED from 2
+#buttondebug = Pin(25,Pin.IN) # Button to SEND MESSAGE to MQTT broker USE 7 FOR PCB
+buttondebug = Pin(14,Pin.IN) # Button to SEND MESSAGE to MQTT broker USE 7 FOR PCB
+led = Pin(15,Pin.OUT) #changed LED from 2
 
 sensor_val_state = [0, 0]
 
@@ -130,7 +134,8 @@ async def sb_cb_msghandler():
                                     continue
                     #now that error handling is done. we check once again if msg is in index of acceptable values
                             else:                    # can possibly get rid of if statement since we 
-                                s = b'AZbd'+ msg[0:1] + b'YB'     # check previously if id and value are in acceptable range
+                                
+                                s = b'AZbd\x01'+ bytes([int(msg[0:1].decode())])+ b'YB'     # check previously if id and value are in acceptable range
                                 send_message(s)
                                 s = 'Motor is set to: {}'.format(msg[0:1].decode())
 
@@ -256,8 +261,8 @@ async def process_rx():
         if token == 0:
             print('ESP: Process_RX function is being ran.')
             token = 1
-        if c is not None:
-            print(c)
+        #if c is not None:
+        #    print(c)
         # if c is not empty:
         
             
