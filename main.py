@@ -161,7 +161,7 @@ async def sb_cb_msghandler():
                             else:
                                 s = f'Setting RPM to: {target_RPM};'
                                 print(s)
-                                s_msg = b'AZbc'+ bytes([target_RPM]) + b'YB'     # check previously if id and value are in acceptable range
+                                s_msg = b'AZbc\x03'+ bytes([target_RPM]) + b'YB'     # check previously if id and value are in acceptable range
                                 send_message(s_msg)
                                 
                                 # send message to Tyler
@@ -205,38 +205,39 @@ def handle_message(message):
                     sensor_val_state[0] = sensor_value
                     sensor_val_state[1] = 1            
 
-            elif message_type == 5:
-                # Handle message type 5
-                subsystem_id = my_string[5]
-                if subsystem_id in team.decode('utf-8'):
-                    print(f'ESP: subsystem {subsystem_id} that is experiencing error')
-                else:
-                    print(f'ESP: Subsystem, {subsystem_id} is not in team.')
-                pass
+            # elif message_type == 5:
+            #     # Handle message type 5
+            #     subsystem_id = my_string[5]
+            #     if subsystem_id in team.decode('utf-8'):
+            #         print(f'ESP: subsystem {subsystem_id} that is experiencing error')
+            #     else:
+            #         print(f'ESP: Subsystem, {subsystem_id} is not in team.')
+            #     pass
 
-            elif message_type == 6:
-                # Handle message type 6
-                motor_status = message[5]
-                if motor_status == 0:
-                    print('ESP: Motor is not down.')
-                elif motor_status == 1:
-                    print('ESP: Motor is up.')
-                else: 
-                    print('ESP: Motor status is unknown.')
+            # elif message_type == 6:
+            #     # Handle message type 6
+            #     motor_status = message[5]
+            #     if motor_status == 0:
+            #         print('ESP: Motor is down.')
+            #     elif motor_status == 1:
+            #         print('ESP: Motor is up.')
+            #     else: 
+            #         print('ESP: Motor status is unknown.')
 
-            elif message_type == 7:
-                # Handle message type 7
-                sensor_status = message[5]
-                if sensor_status == 0:
-                    print('ESP: Sensor is not down.')
-                elif sensor_status == 1:
-                    print('ESP: Sensor is up.')
-                else: 
-                    print('ESP: Sensor status is unknown.')
-                pass
+            # elif message_type == 7:
+            #     # Handle message type 7
+            #     sensor_status = message[5]
+            #     if sensor_status == 0:
+            #         print('ESP: Sensor is not down.')
+            #     elif sensor_status == 1:
+            #         print('ESP: Sensor is up.')
+            #     else: 
+            #         print('ESP: Sensor status is unknown.')
+            #     pass
 
             else:
                 print('ESP: unknown message type.')
+                return
             if message[3:4] == broadcast:
                 print('ESP: broadcast messaged handled, passing broadcast.')
                 send_message(message)
