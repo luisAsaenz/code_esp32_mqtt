@@ -137,6 +137,7 @@ async def sb_cb_msghandler():
                                 
                                 s = b'AZbd\x01'+ bytes([int(msg[0:1].decode())])+ b'YB'     # check previously if id and value are in acceptable range
                                 send_message(s)
+                                
                                 s = 'Motor is set to: {}'.format(msg[0:1].decode())
 
 
@@ -178,15 +179,30 @@ async def sb_cb_msghandler():
 
 
 def handle_message(message):
-    my_string = message.decode('utf-8')
+    try:
+
+        my_string = message.decode('utf-8')
+    except UnicodeError:
+        print("Unicode error, ", message)
+        if message[4] == 2:
+            sensor_value = 0
+            sensor_val_state[1] = 3
+            sensor_val_state[0] = sensor_value
+            if message[3:4] == broadcast:
+                print('ESP: broadcast messaged handled, passing broadcast.')
+                send_message(message)
+            else:
+                print(f'ESP: Message, {message} ,  handled. Deleting message..') 
+            return
+
     if message[3:4] != id and message[3:4] != broadcast: ## checks if receiver is not my id or the broadcast
        
-        print(f'ESP: handling team message {message}')
+        print(f'ESP: PASSING team message {message}')
         send_message(message)
     else:
         # if broadcast message and message type is 8 then pass message if not handle message normally then pass broadcast
         message_type = message[4]
-        if message[3:4] == broadcast and message_type == 8:
+        if message[3:4] == broadcast and message_type == 4:
             print('ESP: passing broadcast ', message)
             send_message(message)
         else: 
@@ -200,44 +216,15 @@ def handle_message(message):
                 if sensor_value > 100:
                     print('ESP: sensor value is too out of range')
                     sensor_value = 0
+                    sensor_val_state[1] = 2
+
                 else:
                     print(f'ESP: message contains sensor value: {sensor_value}')
                     sensor_val_state[0] = sensor_value
                     sensor_val_state[1] = 1            
-
-            # elif message_type == 5:
-            #     # Handle message type 5
-            #     subsystem_id = my_string[5]
-            #     if subsystem_id in team.decode('utf-8'):
-            #         print(f'ESP: subsystem {subsystem_id} that is experiencing error')
-            #     else:
-            #         print(f'ESP: Subsystem, {subsystem_id} is not in team.')
-            #     pass
-
-            # elif message_type == 6:
-            #     # Handle message type 6
-            #     motor_status = message[5]
-            #     if motor_status == 0:
-            #         print('ESP: Motor is down.')
-            #     elif motor_status == 1:
-            #         print('ESP: Motor is up.')
-            #     else: 
-            #         print('ESP: Motor status is unknown.')
-
-            # elif message_type == 7:
-            #     # Handle message type 7
-            #     sensor_status = message[5]
-            #     if sensor_status == 0:
-            #         print('ESP: Sensor is not down.')
-            #     elif sensor_status == 1:
-            #         print('ESP: Sensor is up.')
-            #     else: 
-            #         print('ESP: Sensor status is unknown.')
-            #     pass
-
             else:
-                print('ESP: unknown message type.')
-                return
+                print('ESP: unknown message type.')#took out return
+                
             if message[3:4] == broadcast:
                 print('ESP: broadcast messaged handled, passing broadcast.')
                 send_message(message)
@@ -255,6 +242,7 @@ async def process_rx():
     send_queue = []
     receiving_message=False
     token = 0
+    debug_purp = False
 
     while True:
         # read one byte
@@ -272,9 +260,10 @@ async def process_rx():
             stream+=c
             try:
                 if stream[-2:]==b'AZ':
-                    # print('ESP: message start:')
+                    print('ESP: message is starting')
                     message=stream[-2:-1] #add a to message
                     receiving_message=True
+
             except IndexError:
                 pass
             try:
@@ -302,21 +291,28 @@ async def process_rx():
                 message+=c #immediately after receiving_message == true, Z is added to message
                 #print(message) 
                 #print(c)
+            # if debug_purp == True:
+            #     message += c
+                
+            # if message[-2:] == b'YB' and debug_purp == True:
+            #     print("ESP: DELETED MESSAGE, ", message)
+            #     debug_purp = False
+            #     messaeg = b""
+
 
 
                 if len(message)==3:
                     if  (message[2:3] not in team):
-                        print('ESP: sender not in team ------>  ')
-                        print(c)
-
+                        print('ESP: sender not in team ------>  ', c)
                         # get rid of message if sender not on team
                        # message=b''
                         receiving_message = False
                     else:
                         if message[2:3] == id:
-                            print('ESP: receiving message from self. DELETING...')
-                          #  message=b''
+                            print('ESP: receiving message from self. DELETING... ', message[2:3])
+                            message=b''
                             receiving_message = False
+                            debug_purp = True
                         else:
                             print('ESP: sender in team')
 
@@ -326,7 +322,7 @@ async def process_rx():
                         # get rid of message if sender not on team
                         #message=b''
                         if message[3:4] == broadcast:
-                            print('ESP: receiving broadcast')
+                            print('ESP: receiving broadcast sender ID, ', message[2:3])
                         else:
                             print('ESP: receiver not in team')
                             receiving_message = False
@@ -335,7 +331,7 @@ async def process_rx():
 
                 if len(message)>MAX_MESSAGE_LEN:
                     receiving_message = False
-                    print('ESP: Message too long, aborting')
+                    print('ESP: Message too long, aborting, FIRST 10 VALUES: ', message[:10])
                     message=b''
 
 
@@ -382,13 +378,18 @@ def sub_cb(topic, msg, retained):
 
 async def sensor_update():
     while True:
-        await asyncio.sleep_ms(100)
+        await asyncio.sleep_ms(25)
         if (sensor_val_state[1] == 0):
-            sensor_vals = 'The RPM at the bottom gate: Sensor not connected.'
+            sensor_vals = 'The RPM at the bottom gate: Sensor not connected;'
+        elif sensor_val_state[1] == 2:
+            sensor_vals = 'The RPM at the bottom gate: OUT OF RANGE;'
+        elif sensor_val_state[1] == 3:
+            sensor_vals = 'The RPM at the bottom gate: UNICODE ERROR - {} RPM;'.format(sensor_val_state[0])
+            sensor_val_state[1] = 1
         else:
             sensor_vals = 'The RPM at the bottom gate: {} RPM;'.format(sensor_val_state[0])
          
-
+        
         await client.publish(TOPIC_SENSOR, sensor_vals.encode(), qos=1)
 
 
@@ -426,7 +427,7 @@ async def main(client):
     try:
         await client.connect()
 
-        s = b'Enter a value in SUB to change gate position. Values accepted: 0  1  2'
+        s = b'Enter a value in SUB to change gate position. Values accepted: - 0 (CLOSE) -  - 1 (HALF OPEN) -  - 2 (OPEN) -'
         await client.publish(TOPIC_PUB, s, qos = 1)
 
         s = b'RPM at bottom gate. Enter a value between 0 and 100:  '
